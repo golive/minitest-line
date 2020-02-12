@@ -3,8 +3,8 @@ require 'pathname'
 module Minitest
   module Line
     class << self
-      def tests_with_lines
-        target_file = $0
+      def tests_with_lines(file)
+        target_file = File.expand_path(file)
         methods_with_lines(target_file).concat describes_with_lines(target_file)
       end
 
@@ -40,15 +40,18 @@ module Minitest
     opts.on '-l', '--line N', Integer, "Run test at line number" do |lineno|
       options[:line] = lineno
     end
+    files = opts.default_argv.grep(/_test\.rb/)
+    options[:file] = files.first if files.size == 1
   end
 
   def self.plugin_line_init(options)
-    unless exp_line = options[:line]
+    exp_line = options[:line]
+    unless exp_line && options[:file]
       reporter.reporters << LineReporter.new
       return
     end
 
-    tests = Minitest::Line.tests_with_lines
+    tests = Minitest::Line.tests_with_lines(options[:file])
 
     filter, _ = tests.sort_by { |n, l| -l }.detect { |n, l| exp_line >= l }
 
